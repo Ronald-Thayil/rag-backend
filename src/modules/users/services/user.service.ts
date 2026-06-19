@@ -19,8 +19,8 @@ export class UserService {
     return user;
   }
 
-  async getUsers(): Promise<User[]> {
-    return this.userRepository.findAll();
+  async getUsers(companyId?: string): Promise<User[]> {
+    return this.userRepository.findAll(companyId);
   }
 
   async updateUser(id: string, dto: UpdateUserDto, userId?: string): Promise<User> {
@@ -33,9 +33,9 @@ export class UserService {
     return this.userRepository.update(id, dto, userId);
   }
 
-  async deleteUser(id: string, userId?: string): Promise<void> {
+  async deleteUser(id: string): Promise<void> {
     await this.getUserById(id);
-    return this.userRepository.softDelete(id, userId);
+    return this.userRepository.delete(id);
   }
 }
 

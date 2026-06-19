@@ -2,36 +2,36 @@ import { Request, Response, NextFunction } from "express";
 import Joi from "joi";
 import { errorResponse } from "@/shared/utils/response";
 
-const createTenantSchema = Joi.object({
-  name: Joi.string().max(255).required(),
+export const createCompanySchema = Joi.object({
+  name: Joi.string().required(),
   slug: Joi.string()
-    .max(100)
     .pattern(/^[a-z0-9-]+$/)
     .required()
     .messages({
-      "string.pattern.base": "slug must contain only lowercase letters, numbers, and hyphens",
+      "string.pattern.base":
+        "slug must contain only lowercase letters, numbers, and hyphens",
     }),
-  is_active: Joi.boolean().optional(),
+  settings: Joi.object().optional(),
 });
 
-const updateTenantSchema = Joi.object({
-  name: Joi.string().max(255).optional(),
+export const updateCompanySchema = Joi.object({
+  name: Joi.string().optional(),
   slug: Joi.string()
-    .max(100)
     .pattern(/^[a-z0-9-]+$/)
     .optional()
     .messages({
-      "string.pattern.base": "slug must contain only lowercase letters, numbers, and hyphens",
+      "string.pattern.base":
+        "slug must contain only lowercase letters, numbers, and hyphens",
     }),
-  is_active: Joi.boolean().optional(),
+  settings: Joi.object().optional(),
 }).min(1);
 
-function validateCreateTenant(
+export function validateCreateCompany(
   req: Request,
   res: Response,
   next: NextFunction
 ): void {
-  const { error, value } = createTenantSchema.validate(req.body, {
+  const { error, value } = createCompanySchema.validate(req.body, {
     abortEarly: false,
   });
   if (error) {
@@ -43,12 +43,12 @@ function validateCreateTenant(
   next();
 }
 
-function validateUpdateTenant(
+export function validateUpdateCompany(
   req: Request,
   res: Response,
   next: NextFunction
 ): void {
-  const { error, value } = updateTenantSchema.validate(req.body, {
+  const { error, value } = updateCompanySchema.validate(req.body, {
     abortEarly: false,
   });
   if (error) {
@@ -59,9 +59,3 @@ function validateUpdateTenant(
   req.body = value;
   next();
 }
-
-export {
-  validateCreateTenant,
-  validateUpdateTenant,
-};
-

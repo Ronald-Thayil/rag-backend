@@ -3,70 +3,63 @@ import { v4 as uuidv4 } from "uuid";
 
 export default {
   async up(queryInterface: QueryInterface) {
-    const tenantId = uuidv4();
+    const companyId = uuidv4();
     const adminId = uuidv4();
     const userId = uuidv4();
     const now = new Date();
 
-    await queryInterface.bulkInsert("tenants", [
+    // Seed a company
+    await queryInterface.bulkInsert("companies", [
       {
-        id: tenantId,
+        id: companyId,
         name: "Acme Corporation",
         slug: "acme",
-        is_active: true,
+        settings: JSON.stringify({}),
         created_at: now,
         updated_at: now,
-        deleted_at: null,
         created_by: null,
         updated_by: null,
-        deleted_by: null,
       },
     ]);
 
-    await queryInterface.bulkInsert("users", [
+    // Seed a platform admin
+    await queryInterface.bulkInsert("admins", [
       {
         id: adminId,
-        tenant_id: tenantId,
-        first_name: "System",
-        last_name: "Admin",
         email: "admin@acme.com",
-        phone: null,
-        password_hash: null,
-        role: "SUPER_ADMIN",
+        password_hash: "", // placeholder — set via auth flow
+        first_name: "Platform",
+        last_name: "Admin",
         is_active: true,
         last_login_at: null,
         created_at: now,
         updated_at: now,
-        deleted_at: null,
-        created_by: null,
-        updated_by: null,
-        deleted_by: null,
       },
+    ]);
+
+    // Seed a company user
+    await queryInterface.bulkInsert("users", [
       {
         id: userId,
-        tenant_id: tenantId,
+        company_id: companyId,
+        email: "john@acme.com",
+        password_hash: "", // placeholder
         first_name: "John",
         last_name: "Doe",
-        email: "john@acme.com",
-        phone: null,
-        password_hash: null,
-        role: "USER",
+        role: "company_admin",
         is_active: true,
         last_login_at: null,
         created_at: now,
         updated_at: now,
-        deleted_at: null,
         created_by: null,
         updated_by: null,
-        deleted_by: null,
       },
     ]);
   },
 
   async down(queryInterface: QueryInterface) {
-    await queryInterface.bulkDelete("users", {
-      email: ["admin@acme.com", "john@acme.com"],
-    });
-    await queryInterface.bulkDelete("tenants", { slug: "acme" });
+    await queryInterface.bulkDelete("users", { email: "john@acme.com" });
+    await queryInterface.bulkDelete("admins", { email: "admin@acme.com" });
+    await queryInterface.bulkDelete("companies", { slug: "acme" });
   },
 };

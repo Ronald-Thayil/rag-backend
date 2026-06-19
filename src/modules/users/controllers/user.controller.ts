@@ -23,9 +23,10 @@ export class UserController {
     }
   };
 
-  getAll = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const users = await this.userService.getUsers();
+      const companyId = req.company?.id;
+      const users = await this.userService.getUsers(companyId);
       successResponse(res, users);
     } catch (error) {
       next(error);
@@ -43,7 +44,7 @@ export class UserController {
 
   delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await this.userService.deleteUser(req.params.id, req.user?.id);
+      await this.userService.deleteUser(req.params.id);
       successResponse(res, null, "User deleted successfully");
     } catch (error) {
       next(error);

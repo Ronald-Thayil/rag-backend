@@ -1,9 +1,9 @@
 export interface CreateUserDto {
-  first_name: string;
-  last_name: string;
+  company_id: string;
   email: string;
-  phone?: string;
-  role: string;
-  tenant_id: string;
-  password_hash?: string;
+  password_hash: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+  is_active?: boolean;
 }

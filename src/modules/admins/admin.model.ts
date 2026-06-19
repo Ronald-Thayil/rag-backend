@@ -1,21 +1,16 @@
 import {
   Table, Column, Model, DataType, PrimaryKey, Default,
-  CreatedAt, UpdatedAt, BelongsTo, ForeignKey,
+  CreatedAt, UpdatedAt,
 } from "sequelize-typescript";
-import { Company } from "@/modules/companies/company.model";
 
-@Table({ tableName: "users", underscored: true, timestamps: true })
-export class User extends Model {
+@Table({ tableName: "admins", underscored: true, timestamps: true })
+export class Admin extends Model {
   @PrimaryKey
   @Default(DataType.UUIDV4)
   @Column({ type: DataType.UUID })
   id!: string;
 
-  @ForeignKey(() => Company)
-  @Column({ type: DataType.UUID, allowNull: false })
-  company_id!: string;
-
-  @Column({ type: DataType.TEXT, allowNull: false })
+  @Column({ type: DataType.TEXT, allowNull: false, unique: true })
   email!: string;
 
   @Column({ type: DataType.TEXT, allowNull: false })
@@ -26,9 +21,6 @@ export class User extends Model {
 
   @Column({ type: DataType.TEXT, allowNull: true })
   last_name!: string | null;
-
-  @Column({ type: DataType.TEXT, allowNull: false, defaultValue: "member" })
-  role!: string;
 
   @Column({ type: DataType.BOOLEAN, defaultValue: true })
   is_active!: boolean;
@@ -43,15 +35,6 @@ export class User extends Model {
   @UpdatedAt
   @Column({ field: "updated_at" })
   updated_at!: Date;
-
-  @Column({ type: DataType.UUID, allowNull: true, field: "created_by" })
-  created_by!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true, field: "updated_by" })
-  updated_by!: string | null;
-
-  @BelongsTo(() => Company)
-  company!: Company;
 }
 
-export default User;
+export default Admin;

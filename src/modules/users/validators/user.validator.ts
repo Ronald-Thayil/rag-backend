@@ -5,38 +5,29 @@ import { errorResponse } from "@/shared/utils/response";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const createUserSchema = Joi.object({
-  first_name: Joi.string().max(100).required(),
-  last_name: Joi.string().max(100).required(),
-  email: Joi.string().max(255).pattern(emailPattern).required().messages({
+  company_id: Joi.string().uuid().required(),
+  email: Joi.string().pattern(emailPattern).required().messages({
     "string.pattern.base": "Invalid email format",
   }),
-  phone: Joi.string().max(20).optional().allow("", null),
+  password_hash: Joi.string().required(),
+  first_name: Joi.string().optional().allow("", null),
+  last_name: Joi.string().optional().allow("", null),
   role: Joi.string()
-    .valid("SUPER_ADMIN", "ADMIN", "USER")
-    .required()
-    .messages({
-      "any.only": "Role must be one of: SUPER_ADMIN, ADMIN, USER",
-    }),
-  password_hash: Joi.string().optional().allow("", null),
-  tenant_id: Joi.string().uuid().required(),
+    .valid("member", "company_admin")
+    .default("member")
+    .optional(),
+  is_active: Joi.boolean().optional(),
 });
 
 export const updateUserSchema = Joi.object({
-  first_name: Joi.string().max(100).optional(),
-  last_name: Joi.string().max(100).optional(),
-  email: Joi.string().max(255).pattern(emailPattern).optional().messages({
+  email: Joi.string().pattern(emailPattern).optional().messages({
     "string.pattern.base": "Invalid email format",
   }),
-  phone: Joi.string().max(20).optional().allow("", null),
-  role: Joi.string()
-    .valid("SUPER_ADMIN", "ADMIN", "USER")
-    .optional()
-    .messages({
-      "any.only": "Role must be one of: SUPER_ADMIN, ADMIN, USER",
-    }),
-  password_hash: Joi.string().optional().allow("", null),
+  password_hash: Joi.string().optional(),
+  first_name: Joi.string().optional().allow("", null),
+  last_name: Joi.string().optional().allow("", null),
+  role: Joi.string().valid("member", "company_admin").optional(),
   is_active: Joi.boolean().optional(),
-  tenant_id: Joi.string().uuid().optional(),
 }).min(1);
 
 export function validateCreateUser(

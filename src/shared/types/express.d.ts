@@ -1,10 +1,12 @@
-import { Tenant } from "@/modules/tenants/tenant.model";
+import { Company } from "@/modules/companies/company.model";
+import { Admin } from "@/modules/admins/admin.model";
 import { User } from "@/modules/users/user.model";
 
 declare global {
   namespace Express {
     interface Request {
-      tenant?: Tenant;
+      company?: Company;
+      admin?: Admin;
       user?: User;
     }
   }

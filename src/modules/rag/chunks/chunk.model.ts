@@ -3,10 +3,10 @@ import {
   CreatedAt, UpdatedAt, BelongsTo, ForeignKey,
 } from "sequelize-typescript";
 import { Company } from "@/modules/companies/company.model";
-import { User } from "@/modules/users/user.model";
+import { Document } from "@/modules/rag/documents/document.model";
 
-@Table({ tableName: "documents", underscored: true, timestamps: true })
-export class Document extends Model {
+@Table({ tableName: "chunks", underscored: true, timestamps: true })
+export class Chunk extends Model {
   @PrimaryKey
   @Default(DataType.UUIDV4)
   @Column({ type: DataType.UUID })
@@ -16,36 +16,24 @@ export class Document extends Model {
   @Column({ type: DataType.UUID, allowNull: false })
   company_id!: string;
 
-  @ForeignKey(() => User)
+  @ForeignKey(() => Document)
   @Column({ type: DataType.UUID, allowNull: false })
-  uploaded_by!: string;
+  document_id!: string;
 
   @Column({ type: DataType.TEXT, allowNull: false })
-  filename!: string;
-
-  @Column({ type: DataType.TEXT, allowNull: false })
-  original_filename!: string;
-
-  @Column({ type: DataType.TEXT, allowNull: false })
-  file_type!: string;
-
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  file_size_bytes!: number;
-
-  @Column({ type: DataType.TEXT, allowNull: false })
-  storage_path!: string;
-
-  @Column({ type: DataType.TEXT, allowNull: false, defaultValue: "processing" })
-  status!: string;
+  content!: string;
 
   @Column({ type: DataType.TEXT, allowNull: true })
-  error_message!: string | null;
+  embedding!: string | null;
+
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  chunk_index!: number;
 
   @Column({ type: DataType.JSONB, defaultValue: {} })
   metadata!: object;
 
-  @Column({ type: DataType.INTEGER, defaultValue: 0 })
-  chunk_count!: number;
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  token_count!: number | null;
 
   @CreatedAt
   @Column({ field: "created_at" })
@@ -58,8 +46,8 @@ export class Document extends Model {
   @BelongsTo(() => Company)
   company!: Company;
 
-  @BelongsTo(() => User)
-  uploader!: User;
+  @BelongsTo(() => Document)
+  document!: Document;
 }
 
-export default Document;
+export default Chunk;

@@ -1,8 +1,12 @@
 import { Sequelize } from "sequelize-typescript";
 import { env } from "@/config/env";
+import { logger } from "@/config/logger";
 
-import { Tenant } from "@/modules/tenants/tenant.model";
+import { Company } from "@/modules/companies/company.model";
+import { Admin } from "@/modules/admins/admin.model";
 import { User } from "@/modules/users/user.model";
+import { Document } from "@/modules/rag/documents/document.model";
+import { Chunk } from "@/modules/rag/chunks/chunk.model";
 
 export const sequelize = new Sequelize({
   host: env.DB_HOST,
@@ -36,5 +40,22 @@ export const sequelize = new Sequelize({
       /SequelizeConnectionTimedOutError/,
     ],
   },
-  models: [Tenant, User],
+  models: [Company, Admin, User, Document, Chunk],
+});
+
+/*
+  Reset RLS session variables on every new pool connection.
+  This prevents cross-company data leaks when connections are recycled:
+    - app.current_company_id → empty
+    - app.current_admin_id  → empty
+    - app.current_user_id   → empty
+  The company.middleware.ts then sets the correct values per-request.
+*/
+sequelize.addHook("afterConnect", async (connection: any) => {
+  await connection.query(`
+    SELECT set_config('app.current_company_id', '', true);
+    SELECT set_config('app.current_admin_id', '', true);
+    SELECT set_config('app.current_user_id', '', true);
+  `);
+  logger.debug("RLS session context initialized on new DB connection");
 });
