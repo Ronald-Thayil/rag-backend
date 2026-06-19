@@ -1,0 +1,43 @@
+{
+  "name": "rag-backend-test",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/server.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node -r tsconfig-paths/register dist/server.js",
+    "dev": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/server.ts",
+    "lint": "eslint . --ext .ts",
+    "db:migration:generate": "ts-node -r tsconfig-paths/register src/db/migration-generate.ts",
+    "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:undo": "sequelize-cli db:migrate:undo",
+    "db:seed:generate": "ts-node -r tsconfig-paths/register src/db/seeder-generate.ts",
+    "db:seed:all": "sequelize-cli db:seed:all",
+    "db:seed:undo:all": "sequelize-cli db:seed:undo:all"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "express": "^4.18.2",
+    "joi": "^18.2.3",
+    "pg": "^8.11.0",
+    "pg-hstore": "^2.3.4",
+    "reflect-metadata": "^0.1.13",
+    "sequelize": "^6.32.1",
+    "sequelize-typescript": "^2.1.5",
+    "uuid": "^14.0.0",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.6.1",
+    "@types/pg": "^8.6.6",
+    "@types/uuid": "^10.0.0",
+    "eslint": "^8.40.0",
+    "sequelize-cli": "^6.6.1",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.4.2"
+  }
+}
