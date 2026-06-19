@@ -7,6 +7,7 @@ import { Admin } from "@/modules/admins/admin.model";
 import { User } from "@/modules/users/user.model";
 import { Document } from "@/modules/rag/documents/document.model";
 import { Chunk } from "@/modules/rag/chunks/chunk.model";
+import { RefreshToken } from "@/modules/auth/refresh-token.model";
 
 export const sequelize = new Sequelize({
   host: env.DB_HOST,
@@ -40,7 +41,7 @@ export const sequelize = new Sequelize({
       /SequelizeConnectionTimedOutError/,
     ],
   },
-  models: [Company, Admin, User, Document, Chunk],
+  models: [Company, Admin, User, Document, Chunk, RefreshToken],
 });
 
 /*
