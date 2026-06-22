@@ -2,7 +2,7 @@ import {
   Table, Column, Model, DataType, PrimaryKey, Default, CreatedAt,
 } from "sequelize-typescript";
 
-@Table({ tableName: "refresh_tokens", underscored: true, timestamps: true })
+@Table({ tableName: "refresh_tokens", underscored: true, timestamps: true, updatedAt: false })
 export class RefreshToken extends Model {
   @PrimaryKey
   @Default(DataType.UUIDV4)

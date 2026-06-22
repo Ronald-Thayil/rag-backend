@@ -21,6 +21,10 @@ const RLS_TABLES = [
 export default {
   async up(queryInterface: QueryInterface) {
     // Helper function: returns the current admin UUID (NULL if not set)
+
+    await queryInterface.sequelize.query(`
+    CREATE SCHEMA IF NOT EXISTS app;
+  `);
     await queryInterface.sequelize.query(`
       CREATE OR REPLACE FUNCTION app.current_admin_id()
       RETURNS UUID LANGUAGE SQL STABLE AS $$
@@ -46,6 +50,11 @@ export default {
   },
 
   async down(queryInterface: QueryInterface) {
+
+    await queryInterface.sequelize.query(`
+    DROP SCHEMA IF EXISTS app CASCADE;
+  `);
+
     await queryInterface.sequelize.query(
       `DROP FUNCTION IF EXISTS app.current_admin_id()`,
     );

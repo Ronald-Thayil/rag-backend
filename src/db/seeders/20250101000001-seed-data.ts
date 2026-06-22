@@ -1,3 +1,4 @@
+import * as argon2 from "argon2";
 import { QueryInterface } from "sequelize";
 import { v4 as uuidv4 } from "uuid";
 
@@ -8,7 +9,13 @@ export default {
     const userId = uuidv4();
     const now = new Date();
 
-    // Seed a company
+    const password_hash = await argon2.hash("admin@123", {
+      type: argon2.argon2id,
+      memoryCost: 65536,
+      timeCost: 3,
+      parallelism: 4,
+    });
+
     await queryInterface.bulkInsert("companies", [
       {
         id: companyId,
@@ -22,12 +29,11 @@ export default {
       },
     ]);
 
-    // Seed a platform admin
     await queryInterface.bulkInsert("admins", [
       {
         id: adminId,
         email: "admin@acme.com",
-        password_hash: "", // placeholder — set via auth flow
+        password_hash,
         first_name: "Platform",
         last_name: "Admin",
         is_active: true,
@@ -37,13 +43,12 @@ export default {
       },
     ]);
 
-    // Seed a company user
     await queryInterface.bulkInsert("users", [
       {
         id: userId,
         company_id: companyId,
         email: "john@acme.com",
-        password_hash: "", // placeholder
+        password_hash,
         first_name: "John",
         last_name: "Doe",
         role: "company_admin",

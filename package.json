@@ -14,7 +14,8 @@
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:seed:generate": "ts-node -r tsconfig-paths/register src/db/seeder-generate.ts",
     "db:seed:all": "sequelize-cli db:seed:all",
-    "db:seed:undo:all": "sequelize-cli db:seed:undo:all"
+    "db:seed:undo:all": "sequelize-cli db:seed:undo:all",
+    "test": "jest"
   },
   "dependencies": {
     "argon2": "^0.44.0",
@@ -35,12 +36,17 @@
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^4.17.17",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^20.6.1",
+    "@types/node": "^20.19.43",
     "@types/pg": "^8.6.6",
+    "@types/supertest": "^7.2.0",
     "@types/uuid": "^10.0.0",
     "eslint": "^8.40.0",
+    "jest": "^30.4.2",
     "sequelize-cli": "^6.6.1",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.11",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
     "tsconfig-paths": "^4.2.0",

@@ -6,6 +6,8 @@ import {
   validateCreateCompany,
   validateUpdateCompany,
 } from "@/modules/companies/validators/company.validator";
+import { requireRole } from "@/shared/middleware/rbac.middleware";
+import { UserRole } from "@/shared/enums";
 
 const router = Router();
 
@@ -13,10 +15,10 @@ const repository = new CompanyRepository();
 const service = new CompanyService(repository);
 const controller = new CompanyController(service);
 
-router.post("/", validateCreateCompany, controller.create);
-router.get("/", controller.getAll);
-router.get("/:id", controller.getById);
-router.put("/:id", validateUpdateCompany, controller.update);
-router.delete("/:id", controller.delete);
+router.post("/", requireRole(UserRole.ADMIN), validateCreateCompany, controller.create);
+router.get("/", requireRole(UserRole.ADMIN), controller.getAll);
+router.get("/:id", requireRole(UserRole.ADMIN), controller.getById);
+router.put("/:id", requireRole(UserRole.ADMIN), validateUpdateCompany, controller.update);
+router.delete("/:id", requireRole(UserRole.ADMIN), controller.delete);
 
 export default router;

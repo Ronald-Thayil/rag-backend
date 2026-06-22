@@ -1,6 +1,7 @@
 export enum UserRole {
-  MEMBER = "member",
+  ADMIN = "admin",
   COMPANY_ADMIN = "company_admin",
+  MEMBER = "member",
 }
 
 export enum DocumentStatus {

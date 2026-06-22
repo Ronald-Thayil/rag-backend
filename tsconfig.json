@@ -38,6 +38,9 @@
       ],
       "@interfaces": [
         "src/interfaces"
+      ],
+      "@shared": [
+        "src/shared"
       ]
     }
   }

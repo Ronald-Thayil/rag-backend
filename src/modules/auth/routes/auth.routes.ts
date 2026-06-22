@@ -21,7 +21,7 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, message: "Too many login attempts. Try again later.", data: null },
 });
-
+console.log("Auth routes loaded");
 router.post("/login/user", loginLimiter, validateLogin, controller.loginUser);
 router.post("/login/admin", loginLimiter, validateLogin, controller.loginAdmin);
 router.post("/refresh", controller.refresh);

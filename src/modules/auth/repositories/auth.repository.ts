@@ -15,6 +15,8 @@ export class AuthRepository {
       subject_id: subjectId,
       subject_type: subjectType,
       expires_at: expiresAt,
+      created_at: new Date(),
+
     });
 
     return { raw, token };
