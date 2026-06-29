@@ -8,6 +8,7 @@ import healthRouter from "@/routes/health";
 import companyRoutes from "@/modules/companies/routes/company.routes";
 import userRoutes from "@/modules/users/routes/user.routes";
 import authRoutes from "@/modules/auth/routes/auth.routes";
+import storageRoutes from "@/api/storage/storage.routes";
 
 const router = Router();
 
@@ -17,6 +18,9 @@ const apiRouter = Router();
 
 // Auth routes (no CSRF needed — uses cookie + rate limiting)
 apiRouter.use("/auth", authRoutes);
+
+// Storage routes (file upload/download)
+apiRouter.use("/storage", storageRoutes);
 
 
 
