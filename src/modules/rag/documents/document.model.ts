@@ -41,11 +41,20 @@ export class Document extends Model {
   @Column({ type: DataType.TEXT, allowNull: true })
   error_message!: string | null;
 
+  @Column({ type: DataType.TEXT, allowNull: true })
+  raw_text!: string | null;
+
   @Column({ type: DataType.JSONB, defaultValue: {} })
   metadata!: object;
 
   @Column({ type: DataType.INTEGER, defaultValue: 0 })
   chunk_count!: number;
+
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  page_count!: number | null;
+
+  @Column({ type: "TIMESTAMPTZ", allowNull: true })
+  completed_at!: Date | null;
 
   @CreatedAt
   @Column({ field: "created_at" })

@@ -9,6 +9,7 @@ import companyRoutes from "@/modules/companies/routes/company.routes";
 import userRoutes from "@/modules/users/routes/user.routes";
 import authRoutes from "@/modules/auth/routes/auth.routes";
 import storageRoutes from "@/api/storage/storage.routes";
+import documentRoutes from "@/modules/rag/documents/routes/document.routes";
 
 const router = Router();
 
@@ -19,8 +20,11 @@ const apiRouter = Router();
 // Auth routes (no CSRF needed — uses cookie + rate limiting)
 apiRouter.use("/auth", authRoutes);
 
-// Storage routes (file upload/download)
+// Storage routes (low-level file operations)
 apiRouter.use("/storage", storageRoutes);
+
+// Document routes (full upload pipeline with processing)
+apiRouter.use("/documents", documentRoutes);
 
 
 
