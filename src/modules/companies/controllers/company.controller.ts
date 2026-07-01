@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { CompanyService } from "@/modules/companies/services/company.service";
-import { successResponse } from "@/shared/utils/response";
+import { successResponse, getPaginationParams, paginatedResponse } from "@/shared/utils/response";
 import { UnauthorizedError } from "@/shared/errors/app-error";
 
 export class CompanyController {
@@ -25,10 +25,11 @@ export class CompanyController {
     }
   };
 
-  getAll = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const companies = await this.companyService.getCompanies();
-      successResponse(res, companies);
+      const { page, limit, offset } = getPaginationParams(req.query as { page?: string; limit?: string });
+      const result = await this.companyService.getCompanies({ page, limit, offset });
+      paginatedResponse(res, result.rows, result.count, page, limit);
     } catch (error) {
       next(error);
     }

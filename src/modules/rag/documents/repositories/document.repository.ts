@@ -1,5 +1,6 @@
 import { Document } from "@/modules/rag/documents/document.model";
 import { Chunk } from "@/modules/rag/chunks/chunk.model";
+import { PaginationOptions } from "@/shared/interfaces";
 import { v4 as uuidv4 } from "uuid";
 
 export interface CreateDocumentData {
@@ -62,22 +63,33 @@ export class DocumentRepository {
 
   async findByCompany(
     companyId: string,
-    options: { limit?: number; offset?: number } = {}
+    options: PaginationOptions
   ): Promise<{ rows: Document[]; count: number }> {
-    const { limit = 20, offset = 0 } = options;
     return Document.findAndCountAll({
       where: { company_id: companyId },
       order: [["created_at", "DESC"]],
-      limit,
-      offset,
+      limit: options.limit,
+      offset: options.offset,
     });
   }
 
-  async getChunks(documentId: string): Promise<Chunk[]> {
-    return Chunk.findAll({
+  async getChunks(
+    documentId: string,
+    options?: PaginationOptions
+  ): Promise<{ rows: Chunk[]; count: number }> {
+    if (options) {
+      return Chunk.findAndCountAll({
+        where: { document_id: documentId },
+        order: [["chunk_index", "ASC"]],
+        limit: options.limit,
+        offset: options.offset,
+      });
+    }
+    const rows = await Chunk.findAll({
       where: { document_id: documentId },
       order: [["chunk_index", "ASC"]],
     });
+    return { rows, count: rows.length };
   }
 
   private determineStage(doc: Document): string {

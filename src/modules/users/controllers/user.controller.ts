@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { UserService } from "@/modules/users/services/user.service";
 import { PermissionService } from "@/services/permission.service";
-import { successResponse } from "@/shared/utils/response";
+import { successResponse, getPaginationParams, paginatedResponse } from "@/shared/utils/response";
 import { ForbiddenError } from "@/shared/errors/app-error";
 import { UserRole } from "@/shared/enums";
 import { hashPassword } from "@/shared/utils/password";
@@ -19,7 +19,7 @@ export class UserController {
       this.permissionService.requireCompanyAccess(actor, req.body.company_id);
 
       const createdBy = req.admin?.id || req.user?.id || undefined;
-      const password_hash = hashPassword(req.body.password_hash);
+      const password_hash = await hashPassword(req.body.password_hash);
       const user = await this.userService.createUser({ ...req.body, password_hash }, createdBy);
       successResponse(res, user, "User created successfully", 201);
     } catch (error) {
@@ -55,8 +55,9 @@ export class UserController {
         }
       }
 
-      const users = await this.userService.getUsers(companyId);
-      successResponse(res, users);
+      const { page, limit, offset } = getPaginationParams(req.query as { page?: string; limit?: string });
+      const result = await this.userService.getUsers(companyId, { page, limit, offset });
+      paginatedResponse(res, result.rows, result.count, page, limit);
     } catch (error) {
       next(error);
     }

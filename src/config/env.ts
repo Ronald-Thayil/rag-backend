@@ -11,6 +11,7 @@ export const env = {
   DB_NAME: process.env.DB_NAME || "rag_db",
   DB_USER: process.env.DB_USER || "postgres",
   DB_PASS: process.env.DB_PASS || "",
+  ORIGINS: process.env.ORIGINS || "*",
 
   // JWT
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || "access-secret-dev",

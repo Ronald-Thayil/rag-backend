@@ -3,6 +3,7 @@ import { CreateCompanyDto } from "@/modules/companies/dto/create-company.dto";
 import { UpdateCompanyDto } from "@/modules/companies/dto/update-company.dto";
 import { Company } from "@/modules/companies/company.model";
 import { ConflictError, NotFoundError } from "@/shared/errors/app-error";
+import { PaginationOptions } from "@/shared/interfaces";
 
 export class CompanyService {
   constructor(private readonly companyRepository: CompanyRepository) {}
@@ -19,8 +20,8 @@ export class CompanyService {
     return company;
   }
 
-  async getCompanies(): Promise<Company[]> {
-    return this.companyRepository.findAll();
+  async getCompanies(options?: PaginationOptions): Promise<{ rows: Company[]; count: number }> {
+    return this.companyRepository.findAll(options);
   }
 
   async updateCompany(id: string, dto: UpdateCompanyDto, adminId?: string): Promise<Company> {

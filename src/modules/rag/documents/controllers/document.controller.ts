@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { DocumentService } from "@/modules/rag/documents/services/document.service";
 import { DocumentRepository } from "@/modules/rag/documents/repositories/document.repository";
 import { StorageService } from "@/services/storage.service";
-import { successResponse } from "@/shared/utils/response";
+import { successResponse, getPaginationParams, paginatedResponse } from "@/shared/utils/response";
 
 const repository = new DocumentRepository();
 const storageService = new StorageService();
@@ -68,16 +68,10 @@ export class DocumentController {
         return;
       }
 
-      const limit = parseInt(req.query.limit as string, 10) || 20;
-      const offset = parseInt(req.query.offset as string, 10) || 0;
-      const result = await documentService.listDocuments(companyId, { limit, offset });
+      const { page, limit, offset } = getPaginationParams(req.query as { page?: string; limit?: string });
+      const result = await documentService.listDocuments(companyId, { page, limit, offset });
 
-      successResponse(res, {
-        documents: result.rows,
-        total: result.count,
-        limit,
-        offset,
-      });
+      paginatedResponse(res, result.rows, result.count, page, limit);
     } catch (error) {
       next(error);
     }
@@ -85,8 +79,9 @@ export class DocumentController {
 
   async getChunks(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const chunks = await documentService.getDocumentChunks(req.params.id);
-      successResponse(res, chunks);
+      const { page, limit, offset } = getPaginationParams(req.query as { page?: string; limit?: string });
+      const result = await documentService.getDocumentChunks(req.params.id, { page, limit, offset });
+      paginatedResponse(res, result.rows, result.count, page, limit);
     } catch (error) {
       next(error);
     }

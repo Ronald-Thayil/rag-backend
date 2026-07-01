@@ -2,6 +2,7 @@ import { Company } from "@/modules/companies/company.model";
 import { CreateCompanyDto } from "@/modules/companies/dto/create-company.dto";
 import { UpdateCompanyDto } from "@/modules/companies/dto/update-company.dto";
 import { NotFoundError } from "@/shared/errors/app-error";
+import { PaginationOptions } from "@/shared/interfaces";
 
 export class CompanyRepository {
   async create(dto: CreateCompanyDto, adminId?: string): Promise<Company> {
@@ -20,8 +21,16 @@ export class CompanyRepository {
     return Company.findOne({ where: { slug } });
   }
 
-  async findAll(): Promise<Company[]> {
-    return Company.findAll();
+  async findAll(options?: PaginationOptions): Promise<{ rows: Company[]; count: number }> {
+    if (options) {
+      return Company.findAndCountAll({
+        limit: options.limit,
+        offset: options.offset,
+        order: [["created_at", "DESC"]],
+      });
+    }
+    const rows = await Company.findAll({ order: [["created_at", "DESC"]] });
+    return { rows, count: rows.length };
   }
 
   async update(id: string, dto: UpdateCompanyDto, adminId?: string): Promise<Company> {

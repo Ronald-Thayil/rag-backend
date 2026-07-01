@@ -4,3 +4,4 @@ export const DB_USERNAME =
   process.env.DB_USER || process.env.DB_USERNAME || "postgres";
 export const DB_PASSWORD = process.env.DB_PASS || process.env.DB_PASSWORD || "";
 export const DB_NAME = process.env.DB_NAME || "rag_db";
+export const ORIGINS = process.env.ORIGINS || "*";

@@ -22,14 +22,14 @@ export class AuthService {
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly userRepository: UserRepository
-  ) {}
+  ) { }
 
   // ── User Login ────────────────────────────────────────────
   async loginUser(
     email: string,
     password: string,
     ip: string
-  ): Promise<TokenPair> {
+  ): Promise<TokenPair & { user: User }> {
     const user = await this.userRepository.findByEmail(email);
     if (!user || !user.is_active) {
       logger.warn(`Failed user login attempt for ${email} from ${ip}`);
@@ -52,7 +52,7 @@ export class AuthService {
     await user.update({ last_login_at: new Date() });
     logger.info(`User login success: ${email} (${user.id}) from ${ip}`);
 
-    return tokens;
+    return { ...tokens, user };
   }
 
   // ── Admin Login ───────────────────────────────────────────
@@ -60,7 +60,7 @@ export class AuthService {
     email: string,
     password: string,
     ip: string
-  ): Promise<TokenPair> {
+  ): Promise<TokenPair & { user: Admin }> {
     const admin = await Admin.findOne({ where: { email } });
     if (!admin || !admin.is_active) {
       logger.warn(`Failed admin login attempt for ${email} from ${ip}`);
@@ -81,7 +81,7 @@ export class AuthService {
     await admin.update({ last_login_at: new Date() });
     logger.info(`Admin login success: ${email} (${admin.id}) from ${ip}`);
 
-    return tokens;
+    return { ...tokens, user: admin };
   }
 
   // ── Token Refresh with Rotation ───────────────────────────

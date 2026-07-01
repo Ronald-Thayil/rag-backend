@@ -14,3 +14,17 @@ export interface IApiResponse<T = unknown> {
   message: string;
   data: T | null;
 }
+
+export interface PaginatedData<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginationOptions {
+  page: number;
+  limit: number;
+  offset: number;
+}

@@ -3,6 +3,7 @@ import { StorageService } from "@/services/storage.service";
 import { queueService } from "@/services/queue.service";
 import { uploadConfig } from "@/config/embedding";
 import { BadRequestError } from "@/shared/errors/app-error";
+import { PaginationOptions } from "@/shared/interfaces";
 import { logger } from "@/config/logger";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
@@ -97,17 +98,17 @@ export class DocumentService {
 
   async listDocuments(
     companyId: string,
-    options?: { limit?: number; offset?: number }
+    options: PaginationOptions
   ) {
     return this.documentRepository.findByCompany(companyId, options);
   }
 
-  async getDocumentChunks(documentId: string) {
+  async getDocumentChunks(documentId: string, options?: PaginationOptions) {
     const doc = await this.documentRepository.findById(documentId);
     if (!doc) {
       throw new BadRequestError("Document not found");
     }
-    return this.documentRepository.getChunks(documentId);
+    return this.documentRepository.getChunks(documentId, options);
   }
 
   private validateFile(file: Express.Multer.File): void {

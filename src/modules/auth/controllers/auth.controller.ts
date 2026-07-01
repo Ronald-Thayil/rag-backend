@@ -26,7 +26,7 @@ function clearRefreshCookie(res: Response): void {
 }
 
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   loginUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -34,7 +34,7 @@ export class AuthController {
       const ip = req.ip || req.socket.remoteAddress || "unknown";
       const tokens = await this.authService.loginUser(email, password, ip);
       setRefreshCookie(res, tokens.refresh_token);
-      successResponse(res, { access_token: tokens.access_token }, "Login successful");
+      successResponse(res, { access_token: tokens.access_token, user: tokens.user }, "Login successful");
     } catch (error) {
       next(error);
     }
@@ -46,7 +46,7 @@ export class AuthController {
       const ip = req.ip || req.socket.remoteAddress || "unknown";
       const tokens = await this.authService.loginAdmin(email, password, ip);
       setRefreshCookie(res, tokens.refresh_token);
-      successResponse(res, { access_token: tokens.access_token }, "Admin login successful");
+      successResponse(res, { access_token: tokens.access_token, user: tokens.user }, "Admin login successful");
     } catch (error) {
       next(error);
     }

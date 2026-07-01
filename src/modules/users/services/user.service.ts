@@ -3,6 +3,7 @@ import { CreateUserDto } from "@/modules/users/dto/create-user.dto";
 import { UpdateUserDto } from "@/modules/users/dto/update-user.dto";
 import { User } from "@/modules/users/user.model";
 import { ConflictError, NotFoundError } from "@/shared/errors/app-error";
+import { PaginationOptions } from "@/shared/interfaces";
 
 export class UserService {
   constructor(private readonly userRepository: UserRepository) {}
@@ -19,8 +20,11 @@ export class UserService {
     return user;
   }
 
-  async getUsers(companyId?: string): Promise<User[]> {
-    return this.userRepository.findAll(companyId);
+  async getUsers(
+    companyId?: string,
+    options?: PaginationOptions
+  ): Promise<{ rows: User[]; count: number }> {
+    return this.userRepository.findAll(companyId, options);
   }
 
   async updateUser(id: string, dto: UpdateUserDto, userId?: string): Promise<User> {
