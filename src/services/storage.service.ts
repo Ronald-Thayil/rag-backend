@@ -25,10 +25,10 @@ export class StorageService {
       },
     };
 
-    if (storageConfig.endpoint) {
-      config.endpoint = storageConfig.endpoint;
-      config.forcePathStyle = storageConfig.forcePathStyle;
-    }
+    // if (storageConfig.endpoint) {
+    //   config.endpoint = storageConfig.endpoint;
+    //   config.forcePathStyle = storageConfig.forcePathStyle;
+    // }
 
     this.client = new S3Client(config);
     this.bucket = storageConfig.bucket;

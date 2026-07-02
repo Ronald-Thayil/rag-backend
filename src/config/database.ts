@@ -8,6 +8,8 @@ import { User } from "@/modules/users/user.model";
 import { Document } from "@/modules/rag/documents/document.model";
 import { Chunk } from "@/modules/rag/chunks/chunk.model";
 import { RefreshToken } from "@/modules/auth/refresh-token.model";
+import { QueryTokenUsage } from "@/modules/rag/query/models/query-token-usage.model";
+import { SemanticQueryCache } from "@/modules/rag/query/models/semantic-query-cache.model";
 
 export const sequelize = new Sequelize({
   host: env.DB_HOST,
@@ -32,7 +34,6 @@ export const sequelize = new Sequelize({
       /ECONNREFUSED/,
       /ESOCKETTIMEDOUT/,
       /EPIPE/,
-      /EAI_AGAIN/,
       /SequelizeConnectionError/,
       /SequelizeConnectionRefusedError/,
       /SequelizeHostNotFoundError/,
@@ -41,7 +42,7 @@ export const sequelize = new Sequelize({
       /SequelizeConnectionTimedOutError/,
     ],
   },
-  models: [Company, Admin, User, Document, Chunk, RefreshToken],
+  models: [Company, Admin, User, Document, Chunk, RefreshToken, QueryTokenUsage, SemanticQueryCache],
 });
 
 /*

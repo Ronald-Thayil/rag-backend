@@ -10,6 +10,7 @@ import userRoutes from "@/modules/users/routes/user.routes";
 import authRoutes from "@/modules/auth/routes/auth.routes";
 import storageRoutes from "@/api/storage/storage.routes";
 import documentRoutes from "@/modules/rag/documents/routes/document.routes";
+import queryRoutes from "@/modules/rag/query/routes/query.routes";
 
 const router = Router();
 
@@ -26,7 +27,8 @@ apiRouter.use("/storage", storageRoutes);
 // Document routes (full upload pipeline with processing)
 apiRouter.use("/documents", documentRoutes);
 
-
+// Query routes (question answering)
+apiRouter.use("/query", queryRoutes);
 
 // Protected routes with RBAC audit logging
 apiRouter.use("/companies", authenticate, permissionAuditLogger, csrfProtection, companyRoutes);

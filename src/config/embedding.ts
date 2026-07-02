@@ -19,3 +19,8 @@ export const uploadConfig = {
   allowedTypes: (process.env.UPLOAD_ALLOWED_TYPES || "pdf,docx,xlsx,xls").split(","),
   tempDir: process.env.UPLOAD_TEMP_DIR || "/tmp/documents",
 };
+
+export const queryConfig = {
+  similarityThreshold: parseFloat(process.env.SEMANTIC_CACHE_THRESHOLD || "0.95"),
+  llmModel: process.env.LLM_MODEL || "gpt-4o-mini",
+};

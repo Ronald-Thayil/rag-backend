@@ -80,6 +80,55 @@
       "description": "Health check endpoints"
     },
     {
+      "name": "Query",
+      "item": [
+        {
+          "name": "Query",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"What is the capital of France?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/query",
+              "host": ["{{baseUrl}}"],
+              "path": ["query"]
+            },
+            "description": "Query the RAG system."
+          },
+          "response": []
+        },
+        {
+          "name": "List Audit Logs",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/query/audit-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["query", "audit-logs"]
+            },
+            "description": "List all audit logs."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Auth",
       "item": [
         {
