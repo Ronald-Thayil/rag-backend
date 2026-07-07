@@ -19,11 +19,20 @@ export async function companyMiddleware(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  const companyId = req.headers["x-company-id"] as string | undefined;
+  let companyId = req.headers["x-company-id"] as string | undefined;
 
-  if (!companyId) {
+  if (!companyId && !req.admin?.id) {
     errorResponse(res, "x-company-id header is required", 400);
     return;
+  }
+  if (req.admin?.id) {
+    if (req.query.company_id) {
+      companyId = req.query.company_id as string;
+    }
+    else {
+      errorResponse(res, "x-company-id header is required", 400);
+      return;
+    }
   }
 
   try {

@@ -11,7 +11,7 @@ import {
 } from "@/shared/utils/jwt";
 import { env } from "@/config/env";
 import { logger } from "@/config/logger";
-import { UnauthorizedError } from "@/shared/errors/app-error";
+import { UnauthorizedError, NotFoundError } from "@/shared/errors/app-error";
 
 export interface TokenPair {
   access_token: string;
@@ -82,6 +82,31 @@ export class AuthService {
     logger.info(`Admin login success: ${email} (${admin.id}) from ${ip}`);
 
     return { ...tokens, user: admin };
+  }
+
+  // ── Admin Impersonation (Login as User) ────────────────────
+  async loginAsUser(
+    userId: string,
+    impersonatorId: string
+  ): Promise<TokenPair & { user: User }> {
+    const user = await this.userRepository.findById(userId);
+    if (!user || !user.is_active) {
+      logger.warn(`Impersonation failed: user ${userId} not found or inactive by admin ${impersonatorId}`);
+      throw new NotFoundError("User not found or inactive");
+    }
+
+    const tokens = await this.generateTokens({
+      sub: user.id,
+      type: "user",
+      company_id: user.company_id,
+      role: user.role,
+    });
+
+    await user.update({ last_login_at: new Date() });
+    logger.info(`Admin ${impersonatorId} impersonated user ${user.email} (${user.id})`);
+
+    const { password_hash: _, ...safeUser } = user.toJSON();
+    return { ...tokens, user: safeUser as unknown as User };
   }
 
   // ── Token Refresh with Rotation ───────────────────────────

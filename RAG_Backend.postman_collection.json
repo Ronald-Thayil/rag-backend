@@ -91,18 +91,26 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "x-company-id",
+                "value": "{{companyId}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"query\": \"What is the capital of France?\"\n}"
+              "raw": "{\n  \"query\": \"What is the capital of France?\",\n  \"topK\": 5,\n  \"includeSources\": true\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/query",
               "host": ["{{baseUrl}}"],
               "path": ["query"]
             },
-            "description": "Query the RAG system."
+            "description": "Query the RAG system.\n\n**Request body:**\n- `query` (required) - question text\n- `documentId` (optional) - scope search to a single document UUID\n- `topK` (optional, default: 5) - number of chunks to retrieve (1-50)\n- `includeSources` (optional, default: true) - include source chunks in response\n\n**Response includes:** `answer`, `sources`, `cacheHit`, `cacheSimilarity`, `processingTime`"
           },
           "response": []
         },
@@ -113,8 +121,12 @@
             "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "x-company-id",
+                "value": "{{companyId}}"
               }
             ],
             "url": {
@@ -122,7 +134,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["query", "audit-logs"]
             },
-            "description": "List all audit logs."
+            "description": "List token usage audit logs for the current company.\n\n**Ordered by:** `created_at` DESC\n**Response:** Array of `QueryTokenUsage` records with token counts per query."
           },
           "response": []
         }
@@ -415,7 +427,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "if (pm.response.code === 200 || pm.response.code === 201 || pm.response.code === 202) {",
                   "    var json = pm.response.json();",
                   "    if (json.data && json.data.id) {",
                   "        pm.collectionVariables.set('documentId', json.data.id);",
@@ -464,7 +476,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["documents", "upload"]
             },
-            "description": "Upload a document for RAG processing.\n\n**Requires:** `x-company-id` header.\n\n**Metadata** (optional, as JSON string in form field):\n- `title` (string, max 255)\n- `tags` (array of strings, max 20 items, max 50 chars each)\n- `description` (string, max 1000)"
+            "description": "Upload a document for RAG processing.\n\n**Requires:** `x-company-id` header.\n\n**Metadata** (optional, as JSON string in form field):\n- `title` (string, max 255)\n- `tags` (array of strings, max 20 items, max 50 chars each)\n- `description` (string, max 1000)\n\n**Response (202 Accepted):** File is queued for async processing (parsing → chunking → embedding)."
           },
           "response": []
         },
@@ -495,11 +507,11 @@
                 {
                   "key": "limit",
                   "value": "20",
-                  "description": "Items per page (default: 20, max: 100)"
+                  "description": "Items per page (default: 10, max: 100)"
                 }
               ]
             },
-            "description": "List documents for the current company (from `x-company-id` header)."
+            "description": "List documents for the current company (from `x-company-id` header). Paginated."
           },
           "response": []
         },
@@ -518,7 +530,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["documents", "{{documentId}}", "status"]
             },
-            "description": "Get the processing status of a document.\n\n**Status values:** `processing`, `ready`, `failed`, `deleted`"
+            "description": "Get the processing status of a document.\n\n**Status values:** `processing`, `ready`, `failed`, `deleted`\n\n**Response includes:** `status`, `error_message`, `chunk_count`, `completed_at`"
           },
           "response": []
         },
@@ -552,11 +564,23 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/documents/{{documentId}}/chunks",
+              "raw": "{{baseUrl}}/documents/{{documentId}}/chunks?page=1&limit=20",
               "host": ["{{baseUrl}}"],
-              "path": ["documents", "{{documentId}}", "chunks"]
+              "path": ["documents", "{{documentId}}", "chunks"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page (default: 10, max: 100)"
+                }
+              ]
             },
-            "description": "Get all text chunks for a processed document."
+            "description": "Get paginated text chunks for a processed document.\n\n**Response:** Paginated array of `Chunk` objects with `content`, `chunk_index`, `token_count`, and `metadata`."
           },
           "response": []
         }

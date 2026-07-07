@@ -5,6 +5,9 @@ import { AuthService } from "@/modules/auth/services/auth.service";
 import { AuthRepository } from "@/modules/auth/repositories/auth.repository";
 import { UserRepository } from "@/modules/users/repositories/user.repository";
 import { validateLogin } from "@/modules/auth/validators/auth.validator";
+import { authenticate } from "@/shared/middleware/auth.middleware";
+import { requireRole } from "@/shared/middleware/rbac.middleware";
+import { UserRole } from "@/shared/enums";
 
 const router = Router();
 
@@ -26,5 +29,8 @@ router.post("/login/user", loginLimiter, validateLogin, controller.loginUser);
 router.post("/login/admin", loginLimiter, validateLogin, controller.loginAdmin);
 router.post("/refresh", controller.refresh);
 router.post("/logout", controller.logout);
+
+// Admin impersonation (requires admin auth)
+router.post("/login-as-user/:userId", authenticate, requireRole(UserRole.ADMIN), controller.loginAsUser);
 
 export default router;

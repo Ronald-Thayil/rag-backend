@@ -1,0 +1,689 @@
+{
+  "types": {
+    "IApiResponse": {
+      "description": "Global API response envelope for all endpoints",
+      "shape": {
+        "success": "boolean",
+        "message": "string",
+        "data": "T | null"
+      }
+    },
+    "User": {
+      "description": "Sequelize model - table: users",
+      "shape": {
+        "id": "string (UUID)",
+        "company_id": "string (UUID, FK → companies)",
+        "email": "string",
+        "password_hash": "string",
+        "first_name": "string | null",
+        "last_name": "string | null",
+        "role": "'member' | 'company_admin'",
+        "is_active": "boolean",
+        "last_login_at": "string (ISO date) | null",
+        "created_at": "string (ISO date)",
+        "updated_at": "string (ISO date)",
+        "created_by": "string (UUID) | null",
+        "updated_by": "string (UUID) | null"
+      }
+    },
+    "Admin": {
+      "description": "Sequelize model - table: admins",
+      "shape": {
+        "id": "string (UUID)",
+        "email": "string",
+        "password_hash": "string",
+        "first_name": "string | null",
+        "last_name": "string | null",
+        "is_active": "boolean",
+        "last_login_at": "string (ISO date) | null",
+        "created_at": "string (ISO date)",
+        "updated_at": "string (ISO date)"
+      }
+    },
+    "Company": {
+      "description": "Sequelize model - table: companies",
+      "shape": {
+        "id": "string (UUID)",
+        "name": "string",
+        "slug": "string (lowercase, kebab-case)",
+        "settings": "Record<string, any>",
+        "created_at": "string (ISO date)",
+        "updated_at": "string (ISO date)",
+        "created_by": "string (UUID) | null",
+        "updated_by": "string (UUID) | null"
+      }
+    },
+    "Document": {
+      "description": "Sequelize model - table: documents",
+      "shape": {
+        "id": "string (UUID)",
+        "company_id": "string (UUID, FK → companies)",
+        "uploaded_by": "string (UUID, FK → users)",
+        "filename": "string (storage path/key)",
+        "original_filename": "string",
+        "file_type": "string (mime type)",
+        "file_size_bytes": "number",
+        "storage_path": "string | null",
+        "status": "'processing' | 'ready' | 'failed' | 'deleted'",
+        "error_message": "string | null",
+        "raw_text": "string | null",
+        "metadata": "Record<string, any> | null",
+        "chunk_count": "number",
+        "page_count": "number | null",
+        "completed_at": "string (ISO date) | null",
+        "created_at": "string (ISO date)",
+        "updated_at": "string (ISO date)"
+      }
+    },
+    "Chunk": {
+      "description": "Sequelize model - table: chunks (document text chunks with embeddings)",
+      "shape": {
+        "id": "string (UUID)",
+        "company_id": "string (UUID, FK → companies)",
+        "document_id": "string (UUID, FK → documents)",
+        "content": "string",
+        "embedding": "number[] | null",
+        "chunk_index": "number",
+        "metadata": "Record<string, any> | null",
+        "token_count": "number | null",
+        "created_at": "string (ISO date)",
+        "updated_at": "string (ISO date)"
+      }
+    },
+    "UploadResult": {
+      "description": "Response data returned after a successful document upload",
+      "shape": {
+        "id": "string (UUID)",
+        "filename": "string",
+        "originalFilename": "string",
+        "fileType": "string",
+        "fileSizeBytes": "number",
+        "status": "'processing'",
+        "createdAt": "string (ISO date)"
+      }
+    },
+    "SourceResult": {
+      "description": "A single source document chunk returned in query results",
+      "shape": {
+        "documentId": "string (UUID)",
+        "filename": "string",
+        "content": "string",
+        "similarity": "number (cosine similarity score)"
+      }
+    },
+    "QueryResponse": {
+      "description": "Response data from a RAG query",
+      "shape": {
+        "answer": "string",
+        "sources": "SourceResult[]",
+        "cacheHit": "boolean",
+        "cacheSimilarity": "number (0 if no cache entry)",
+        "processingTime": "number (ms)"
+      }
+    },
+    "QueryTokenUsage": {
+      "description": "Sequelize model - table: query_token_usage (audit log for LLM/embedding token consumption)",
+      "shape": {
+        "id": "string (UUID)",
+        "company_id": "string (UUID, FK → companies)",
+        "query_id": "string (UUID)",
+        "operation_type": "'embedding' | 'completion'",
+        "model": "string",
+        "embedding_tokens": "number | null",
+        "prompt_tokens": "number | null",
+        "completion_tokens": "number | null",
+        "total_tokens": "number",
+        "cache_hit": "boolean",
+        "created_at": "string (ISO date)"
+      }
+    }
+  },
+  "endpoints": {
+    "auth": {
+      "basePath": "/api/v1/auth",
+      "endpoints": {
+        "loginUser": {
+          "method": "POST",
+          "path": "/login/user",
+          "description": "Authenticate a regular user (member or company_admin)",
+          "request": {
+            "body": {
+              "email": "string (valid email)",
+              "password": "string"
+            },
+            "cookies": [],
+            "headers": [],
+            "query": []
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Login successful",
+              "data": {
+                "access_token": "string (JWT)",
+                "user": "User (full User object, see types.User.shape)"
+              }
+            }
+          }
+        },
+        "loginAdmin": {
+          "method": "POST",
+          "path": "/login/admin",
+          "description": "Authenticate an admin user",
+          "request": {
+            "body": {
+              "email": "string (valid email)",
+              "password": "string"
+            },
+            "cookies": [],
+            "headers": [],
+            "query": []
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Admin login successful",
+              "data": {
+                "access_token": "string (JWT)",
+                "user": "Admin & { role: 'admin' } (Admin object with hardcoded role field)"
+              }
+            }
+          }
+        },
+        "refresh": {
+          "method": "POST",
+          "path": "/refresh",
+          "description": "Refresh access token using httpOnly refresh cookie",
+          "request": {
+            "body": {},
+            "cookies": [
+              "refresh_token (httpOnly, sent automatically by browser)"
+            ],
+            "headers": [],
+            "query": []
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Token refreshed",
+              "data": {
+                "access_token": "string (new JWT)"
+              }
+            }
+          }
+        },
+        "logout": {
+          "method": "POST",
+          "path": "/logout",
+          "description": "Revoke refresh token and clear cookie",
+          "request": {
+            "body": {},
+            "cookies": [
+              "refresh_token (httpOnly, sent automatically by browser)"
+            ],
+            "headers": [],
+            "query": []
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Logged out successfully",
+              "data": null
+            }
+          }
+        }
+      }
+    },
+    "companies": {
+      "basePath": "/api/v1/companies",
+      "middleware": ["authenticate", "permissionAuditLogger", "csrfProtection"],
+      "endpoints": {
+        "create": {
+          "method": "POST",
+          "path": "/",
+          "description": "Create a new company (admin only)",
+          "request": {
+            "body": {
+              "name": "string (required)",
+              "slug": "string (required, regex: /^[a-z0-9-]+$/)",
+              "settings": "Record<string, any> | undefined (optional)"
+            },
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "X-Requested-With: XMLHttpRequest (CSRF)"
+            ],
+            "query": []
+          },
+          "response": {
+            "201": {
+              "success": true,
+              "message": "Company created successfully",
+              "data": "Company (see types.Company.shape)"
+            }
+          }
+        },
+        "getAll": {
+          "method": "GET",
+          "path": "/",
+          "description": "List all companies (admin only)",
+          "request": {
+            "body": {},
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "X-Requested-With: XMLHttpRequest (CSRF)"
+            ],
+            "query": []
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Success",
+              "data": "Company[] (array of Company, see types.Company.shape)"
+            }
+          }
+        },
+        "getById": {
+          "method": "GET",
+          "path": "/:id",
+          "description": "Get a single company by ID (admin only)",
+          "request": {
+            "body": {},
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "X-Requested-With: XMLHttpRequest (CSRF)"
+            ],
+            "query": [],
+            "params": {
+              "id": "string (UUID)"
+            }
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Success",
+              "data": "Company (see types.Company.shape)"
+            }
+          }
+        },
+        "update": {
+          "method": "PUT",
+          "path": "/:id",
+          "description": "Update a company by ID (admin only)",
+          "request": {
+            "body": {
+              "name": "string | undefined (optional, at least one field required)",
+              "slug": "string | undefined (optional, regex: /^[a-z0-9-]+$/, at least one field required)",
+              "settings": "Record<string, any> | undefined (optional, at least one field required)"
+            },
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "X-Requested-With: XMLHttpRequest (CSRF)"
+            ],
+            "query": [],
+            "params": {
+              "id": "string (UUID)"
+            }
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Company updated successfully",
+              "data": "Company (see types.Company.shape)"
+            }
+          }
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/:id",
+          "description": "Delete a company by ID (admin only)",
+          "request": {
+            "body": {},
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "X-Requested-With: XMLHttpRequest (CSRF)"
+            ],
+            "query": [],
+            "params": {
+              "id": "string (UUID)"
+            }
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Company deleted successfully",
+              "data": null
+            }
+          }
+        }
+      }
+    },
+    "users": {
+      "basePath": "/api/v1/users",
+      "middleware": ["authenticate", "permissionAuditLogger", "companyMiddleware", "csrfProtection"],
+      "endpoints": {
+        "create": {
+          "method": "POST",
+          "path": "/",
+          "description": "Create a new user (requires USERS_CREATE permission: admin or company_admin)",
+          "request": {
+            "body": {
+              "company_id": "string (UUID, required)",
+              "email": "string (required, regex: /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/)",
+              "password_hash": "string (required - this is the plain password, hashed server-side)",
+              "first_name": "string | undefined | null (optional)",
+              "last_name": "string | undefined | null (optional)",
+              "role": "'member' | 'company_admin' | undefined (optional, defaults to 'member')",
+              "is_active": "boolean | undefined (optional)"
+            },
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "X-Requested-With: XMLHttpRequest (CSRF)",
+              "x-company-id: string (UUID, optional - set by middleware)"
+            ],
+            "query": []
+          },
+          "response": {
+            "201": {
+              "success": true,
+              "message": "User created successfully",
+              "data": "User (see types.User.shape)"
+            }
+          }
+        },
+        "getAll": {
+          "method": "GET",
+          "path": "/",
+          "description": "List users (admin: all, company_admin: own company, member: forbidden)",
+          "request": {
+            "body": {},
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "X-Requested-With: XMLHttpRequest (CSRF)",
+              "x-company-id: string (UUID, optional - set by middleware)"
+            ],
+            "query": {
+              "company_id": "string (UUID, optional - admin only, overrides company context)"
+            }
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Success",
+              "data": "User[] (array of User, see types.User.shape)"
+            }
+          }
+        },
+        "getById": {
+          "method": "GET",
+          "path": "/:id",
+          "description": "Get a single user by ID (requires USERS_READ + own user or company access)",
+          "request": {
+            "body": {},
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "X-Requested-With: XMLHttpRequest (CSRF)",
+              "x-company-id: string (UUID, optional - set by middleware)"
+            ],
+            "query": [],
+            "params": {
+              "id": "string (UUID)"
+            }
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Success",
+              "data": "User (see types.User.shape)"
+            }
+          }
+        },
+        "update": {
+          "method": "PUT",
+          "path": "/:id",
+          "description": "Update a user by ID (requires USERS_UPDATE + own user or company access)",
+          "request": {
+            "body": {
+              "email": "string | undefined (optional, at least one field required)",
+              "password_hash": "string | undefined (optional, at least one field required)",
+              "first_name": "string | undefined | null (optional, at least one field required)",
+              "last_name": "string | undefined | null (optional, at least one field required)",
+              "role": "'member' | 'company_admin' | undefined (optional, at least one field required)",
+              "is_active": "boolean | undefined (optional, at least one field required)"
+            },
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "X-Requested-With: XMLHttpRequest (CSRF)",
+              "x-company-id: string (UUID, optional - set by middleware)"
+            ],
+            "query": [],
+            "params": {
+              "id": "string (UUID)"
+            }
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "User updated successfully",
+              "data": "User (see types.User.shape)"
+            }
+          }
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/:id",
+          "description": "Delete a user by ID (requires USERS_DELETE + own user or company access)",
+          "request": {
+            "body": {},
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "X-Requested-With: XMLHttpRequest (CSRF)",
+              "x-company-id: string (UUID, optional - set by middleware)"
+            ],
+            "query": [],
+            "params": {
+              "id": "string (UUID)"
+            }
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "User deleted successfully",
+              "data": null
+            }
+          }
+        }
+      }
+    },
+    "documents": {
+      "basePath": "/api/v1/documents",
+      "middleware": ["authenticate", "companyMiddleware"],
+      "endpoints": {
+        "upload": {
+          "method": "POST",
+          "path": "/upload",
+          "description": "Upload a document for RAG processing. Accepts multipart/form-data with file and optional metadata. Enqueues async processing (parsing, chunking, embedding).",
+          "request": {
+            "body": {
+              "file": "File (required, multipart form-data, allowed types: pdf, docx, xlsx, csv)",
+              "metadata": "string | undefined (optional, JSON string with optional fields: title (max 255), tags (max 20 items, max 50 chars each), description (max 1000))"
+            },
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "x-company-id: string (UUID)",
+              "X-Requested-With: XMLHttpRequest"
+            ],
+            "query": []
+          },
+          "response": {
+            "202": {
+              "success": true,
+              "message": "File uploaded, processing started",
+              "data": "UploadResult (see types.UploadResult.shape)"
+            }
+          }
+        },
+        "list": {
+          "method": "GET",
+          "path": "/",
+          "description": "List documents for the current company (from x-company-id header). Paginated.",
+          "request": {
+            "body": {},
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "x-company-id: string (UUID)"
+            ],
+            "query": {
+              "page": "number (optional, default: 1)",
+              "limit": "number (optional, default: 10, max: 100)"
+            }
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Success",
+              "data": "PaginatedResult<Document> (see types.Document.shape)"
+            }
+          }
+        },
+        "getById": {
+          "method": "GET",
+          "path": "/:id",
+          "description": "Get full document details by ID.",
+          "request": {
+            "body": {},
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>"
+            ],
+            "query": [],
+            "params": {
+              "id": "string (UUID)"
+            }
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Success",
+              "data": "Document (see types.Document.shape)"
+            }
+          }
+        },
+        "getStatus": {
+          "method": "GET",
+          "path": "/:id/status",
+          "description": "Get the processing status of a document.",
+          "request": {
+            "body": {},
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>"
+            ],
+            "query": [],
+            "params": {
+              "id": "string (UUID)"
+            }
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Success",
+              "data": "{ status: 'processing' | 'ready' | 'failed' | 'deleted', error_message: string | null, chunk_count: number, completed_at: string (ISO date) | null }"
+            }
+          }
+        },
+        "getChunks": {
+          "method": "GET",
+          "path": "/:id/chunks",
+          "description": "Get all text chunks for a processed document. Paginated.",
+          "request": {
+            "body": {},
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>"
+            ],
+            "query": {
+              "page": "number (optional, default: 1)",
+              "limit": "number (optional, default: 10, max: 100)"
+            },
+            "params": {
+              "id": "string (UUID)"
+            }
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Success",
+              "data": "PaginatedResult<Chunk> (see types.Chunk.shape)"
+            }
+          }
+        }
+      }
+    },
+    "query": {
+      "basePath": "/api/v1/query",
+      "middleware": ["authenticate", "companyMiddleware"],
+      "endpoints": {
+        "query": {
+          "method": "POST",
+          "path": "/",
+          "description": "Query the RAG system. Embeds the question, retrieves relevant chunks, and generates an LLM answer. Results may be served from semantic cache.",
+          "request": {
+            "body": {
+              "query": "string (required, min length 1)",
+              "documentId": "string (UUID, optional - scope search to a single document)",
+              "topK": "number (optional, integer 1-50, default: 5)",
+              "includeSources": "boolean (optional, default: true)"
+            },
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "x-company-id: string (UUID)",
+              "Content-Type: application/json"
+            ],
+            "query": []
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Query processed successfully",
+              "data": "QueryResponse (see types.QueryResponse.shape)"
+            }
+          }
+        },
+        "listAuditLogs": {
+          "method": "GET",
+          "path": "/audit-logs",
+          "description": "List token usage audit logs for the current company. Ordered by created_at DESC.",
+          "request": {
+            "body": {},
+            "cookies": [],
+            "headers": [
+              "Authorization: Bearer <token>",
+              "x-company-id: string (UUID)"
+            ],
+            "query": []
+          },
+          "response": {
+            "200": {
+              "success": true,
+              "message": "Audit logs fetched successfully",
+              "data": "QueryTokenUsage[] (array of QueryTokenUsage, see types.QueryTokenUsage.shape)"
+            }
+          }
+        }
+      }
+    }
+  }
+}

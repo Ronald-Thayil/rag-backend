@@ -21,6 +21,6 @@ export const uploadConfig = {
 };
 
 export const queryConfig = {
-  similarityThreshold: parseFloat(process.env.SEMANTIC_CACHE_THRESHOLD || "0.95"),
+  similarityThreshold: parseFloat(process.env.SEMANTIC_CACHE_THRESHOLD || "0.90"),
   llmModel: process.env.LLM_MODEL || "gpt-4o-mini",
 };

@@ -52,6 +52,18 @@ export class AuthController {
     }
   };
 
+  loginAsUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = req.params;
+      const adminId = req.admin!.id;
+      const tokens = await this.authService.loginAsUser(userId, adminId);
+      setRefreshCookie(res, tokens.refresh_token);
+      successResponse(res, { access_token: tokens.access_token, user: tokens.user }, "Impersonation successful");
+    } catch (error) {
+      next(error);
+    }
+  };
+
   refresh = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const raw = req.cookies?.[REFRESH_COOKIE];

@@ -38,7 +38,7 @@ async function processDocument(job: Job<DocumentJobData>): Promise<void> {
   const updateFields: Partial<Document> = {
     raw_text: parseResult.text,
     page_count: parseResult.metadata.pageCount || null,
-    metadata: parseResult.metadata as Record<string, unknown>,
+    // metadata: parseResult.metadata as Record<string, unknown>,
   };
   await Document.update(updateFields, { where: { id: documentId } });
 
