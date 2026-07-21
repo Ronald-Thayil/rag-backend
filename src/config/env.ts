@@ -1,3 +1,24 @@
+/**
+ * Environment Configuration
+ *
+ * Loads environment variables via dotenv and exports a typed `env` object.
+ * All new RAG pipeline configuration variables are included here with
+ * their defaults.
+ *
+ * Config sections:
+ *   General      — NODE_ENV, PORT
+ *   Database     — PostgreSQL connection
+ *   JWT / Auth   — Token signing and expiration
+ *   Cookies      — Domain and security settings
+ *   Redis/Queue  — Bull job queue
+ *   Upload       — File upload limits and allowed types
+ *   Chunking     — Document chunking parameters
+ *   Embedding    — OpenAI embedding settings
+ *   Job Queue    — Processing timeouts and retries
+ *   Retrieval    — Hybrid search, reranking, relevance threshold (Priorities 3-5)
+ *   Rewriting    — Query rewriting (Priority 6)
+ *   Evaluation   — Metrics tracking (Priority 7)
+ */
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -44,6 +65,26 @@ export const env = {
   // Job Queue
   JOB_TIMEOUT_SECONDS: parseInt(process.env.JOB_TIMEOUT_SECONDS || "300", 10),
   JOB_MAX_ATTEMPTS: parseInt(process.env.JOB_MAX_ATTEMPTS || "3", 10),
+
+  /* ── Retrieval / Hybrid Search (Priority 3) ──────────────────────── */
+  HYBRID_SEARCH_ENABLED: process.env.HYBRID_SEARCH_ENABLED !== "false",
+  VECTOR_TOP_K: parseInt(process.env.VECTOR_TOP_K || "20", 10),
+  BM25_TOP_K: parseInt(process.env.BM25_TOP_K || "20", 10),
+  RERANK_TOP_K: parseInt(process.env.RERANK_TOP_K || "5", 10),
+
+  /* ── Hallucination Guard (Priority 5) ────────────────────────────── */
+  RELEVANCE_THRESHOLD: parseFloat(process.env.RELEVANCE_THRESHOLD || "0.0"),
+
+  /* ── Reranker (Priority 4) ────────────────────────────────────────── */
+  RERANKER_PROVIDER: process.env.RERANKER_PROVIDER || "none",
+  COHERE_API_KEY: process.env.COHERE_API_KEY || "",
+
+  /* ── Query Rewriting (Priority 6) ─────────────────────────────────── */
+  QUERY_REWRITING_ENABLED: process.env.QUERY_REWRITING_ENABLED === "true",
+  QUERY_REWRITER_MODEL: process.env.QUERY_REWRITER_MODEL || process.env.LLM_MODEL || "gpt-4o-mini",
+
+  /* ── Evaluation (Priority 7) ──────────────────────────────────────── */
+  EVALUATION_ENABLED: process.env.EVALUATION_ENABLED === "true",
 };
 
 const required = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER"] as const;
