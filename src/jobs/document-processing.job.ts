@@ -8,6 +8,7 @@ import { Document } from "@/modules/rag/documents/document.model";
 import { Chunk } from "@/modules/rag/chunks/chunk.model";
 import { logger } from "@/config/logger";
 import path from "path";
+import { DocumentStatus } from "@/shared/enums";
 
 const storageService = new StorageService();
 const parserFactory = new ParserFactory();
@@ -18,19 +19,28 @@ async function processDocument(job: Job<DocumentJobData>): Promise<void> {
   const { documentId, companyId, storagePath, fileType } = job.data;
   const ext = path.extname(storagePath).replace(/^\./, "") || fileType;
 
-  logger.info("Starting document processing", { documentId, stage: "download" });
+  logger.info("Starting document processing", {
+    documentId,
+    stage: "download",
+  });
 
   const file = await storageService.download(storagePath);
 
-  logger.info("Document downloaded, starting parse", { documentId, stage: "parse" });
+  logger.info("Document downloaded, starting parse", {
+    documentId,
+    stage: "parse",
+  });
 
   let parseResult;
   try {
     parseResult = await parserFactory.parse(file.body, ext);
   } catch (error) {
     await Document.update(
-      { status: "failed", error_message: `Parse failed: ${(error as Error).message}` },
-      { where: { id: documentId } }
+      {
+        status: "failed",
+        error_message: `Parse failed: ${(error as Error).message}`,
+      },
+      { where: { id: documentId } },
     );
     throw error;
   }
@@ -53,8 +63,11 @@ async function processDocument(job: Job<DocumentJobData>): Promise<void> {
     chunks = chunkingService.chunkText(parseResult.text);
   } catch (error) {
     await Document.update(
-      { status: "failed", error_message: `Chunking failed: ${(error as Error).message}` },
-      { where: { id: documentId } }
+      {
+        status: "failed",
+        error_message: `Chunking failed: ${(error as Error).message}`,
+      },
+      { where: { id: documentId } },
     );
     throw error;
   }
@@ -83,21 +96,24 @@ async function processDocument(job: Job<DocumentJobData>): Promise<void> {
     await Chunk.bulkCreate(chunkRecords);
   } catch (error) {
     await Document.update(
-      { status: "failed", error_message: `Chunk storage failed: ${(error as Error).message}` },
-      { where: { id: documentId } }
+      {
+        status: "failed",
+        error_message: `Chunk storage failed: ${(error as Error).message}`,
+      },
+      { where: { id: documentId } },
     );
     throw error;
   }
 
   await Document.update(
     { chunk_count: chunks.length },
-    { where: { id: documentId } }
+    { where: { id: documentId } },
   );
 
   if (chunks.length === 0) {
     await Document.update(
-      { status: "ready", completed_at: new Date() },
-      { where: { id: documentId } }
+      { status: DocumentStatus.FAILED, completed_at: new Date() },
+      { where: { id: documentId } },
     );
     logger.info("Document processed (no content to embed)", { documentId });
     return;
@@ -125,18 +141,24 @@ async function processDocument(job: Job<DocumentJobData>): Promise<void> {
     }
   } catch (error) {
     await Document.update(
-      { status: "failed", error_message: `Embedding failed: ${(error as Error).message}` },
-      { where: { id: documentId } }
+      {
+        status: "failed",
+        error_message: `Embedding failed: ${(error as Error).message}`,
+      },
+      { where: { id: documentId } },
     );
     throw error;
   }
 
   await Document.update(
     { status: "ready", completed_at: new Date() },
-    { where: { id: documentId } }
+    { where: { id: documentId } },
   );
 
-  logger.info("Document processing complete", { documentId, stage: "complete" });
+  logger.info("Document processing complete", {
+    documentId,
+    stage: "complete",
+  });
 }
 
 export function registerDocumentProcessor(): void {
