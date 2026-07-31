@@ -3,6 +3,8 @@ import { QueryController } from "@/modules/rag/query/controllers/query.controlle
 import { validateQuery } from "@/modules/rag/query/validators/query.validator";
 import { authenticate } from "@/shared/middleware/auth.middleware";
 import { companyMiddleware } from "@/shared/middleware/company.middleware";
+import { requireRole } from "@/shared/middleware/rbac.middleware";
+import { UserRole } from "@/shared/enums";
 
 const router = Router();
 const controller = new QueryController();
@@ -20,6 +22,15 @@ router.get(
   authenticate,
   companyMiddleware,
   controller.listAuditLogs
+);
+
+// Company admin: Get company query statistics with pagination
+router.get(
+  "/stats",
+  authenticate,
+  companyMiddleware,
+  requireRole(UserRole.COMPANY_ADMIN),
+  controller.getCompanyQueryStats
 );
 
 export default router;

@@ -35,12 +35,16 @@ export class SemanticQueryCache extends Model {
   @Column({ type: DataType.INTEGER, defaultValue: 0, allowNull: false })
   hit_count!: number;
 
+  @Column({ field: "reference_semantic_id", type: DataType.UUID, allowNull: true })
+  reference_semantic_id!: string | null;
+
   @CreatedAt
   @Column({ field: "created_at" })
   created_at!: Date;
 
   @Column({ field: "last_used_at", type: DataType.DATE, allowNull: false })
   last_used_at!: Date;
+
 }
 
 export default SemanticQueryCache;

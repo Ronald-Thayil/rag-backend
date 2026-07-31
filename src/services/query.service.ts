@@ -38,10 +38,15 @@ import { embeddingConfig, queryConfig } from "@/config/embedding";
 import { EmbeddingService } from "@/services/embedding.service";
 import { LlmService, ContextChunk } from "@/services/llm.service";
 import { Bm25Service, Bm25Result } from "@/services/bm25.service";
-import { RerankerService, RerankItem, RerankerResult } from "@/services/reranker.service";
+import {
+  RerankerService,
+  RerankItem,
+  RerankerResult,
+} from "@/services/reranker.service";
 import { QueryRewriterService } from "@/services/query-rewriter.service";
 import { Chunk } from "@/modules/rag/chunks/chunk.model";
 import { Document } from "@/modules/rag/documents/document.model";
+import SemanticQueryCache from "@/modules/rag/query/models/semantic-query-cache.model";
 import QueryTokenUsage from "@/modules/rag/query/models/query-token-usage.model";
 import { AppError } from "@/shared/errors/app-error";
 
@@ -128,7 +133,10 @@ export class QueryService {
       embeddingTokens = this.estimateTokens(query);
     } catch (error) {
       logger.error("Embedding failed", { error: (error as Error).message });
-      throw new AppError("Failed to embed the question. Please try again.", 500);
+      throw new AppError(
+        "Failed to embed the question. Please try again.",
+        500,
+      );
     }
 
     /* ── Step 2: Audit log embedding token usage ──────────────────────── */
@@ -146,9 +154,16 @@ export class QueryService {
      * Look up semantically similar past queries. If found above the
      * similarityThreshold (default 0.90), return the cached answer directly
      * without any LLM call. */
-    const cacheResult = await this.lookupCache(companyId, queryEmbedding, documentId);
+    const cacheResult = await this.lookupCache(
+      companyId,
+      queryEmbedding,
+      documentId,
+    );
 
-    if (cacheResult && cacheResult.similarity >= queryConfig.similarityThreshold) {
+    if (
+      cacheResult &&
+      cacheResult.similarity >= queryConfig.similarityThreshold
+    ) {
       await this.incrementCacheHit(cacheResult.id);
 
       const processingTime = Date.now() - startTime;
@@ -160,6 +175,17 @@ export class QueryService {
         model: "cache",
         totalTokens: 0,
         cacheHit: true,
+      });
+
+      await this.writeCache({
+        queryId,
+        companyId,
+        documentId: documentId || null,
+        question: originalQuery,
+        embedding: queryEmbedding,
+        answer: cacheResult.answer,
+        sources: includeSources ? (cacheResult.sources as SourceResult[]) : [],
+        referenceId: cacheResult.id,
       });
 
       return {
@@ -184,9 +210,20 @@ export class QueryService {
      *   Pure cosine similarity against all company chunks. */
     let chunks: ChunkWithSimilarity[];
     if (queryConfig.hybridSearchEnabled) {
-      chunks = await this.retrieveHybrid(companyId, query, queryEmbedding, documentId, topK);
+      chunks = await this.retrieveHybrid(
+        companyId,
+        query,
+        queryEmbedding,
+        documentId,
+        topK,
+      );
     } else {
-      chunks = await this.retrieveVectorOnly(companyId, queryEmbedding, documentId, topK);
+      chunks = await this.retrieveVectorOnly(
+        companyId,
+        queryEmbedding,
+        documentId,
+        topK,
+      );
     }
 
     if (chunks.length === 0) {
@@ -213,11 +250,11 @@ export class QueryService {
         answer: "No relevant information was found in the indexed documents.",
         sources: includeSources
           ? chunks.slice(0, topK).map((c) => ({
-              documentId: c.document_id,
-              filename: c.document_filename || "unknown",
-              content: c.content,
-              similarity: c.similarity,
-            }))
+            documentId: c.document_id,
+            filename: c.document_filename || "unknown",
+            content: c.content,
+            similarity: c.similarity,
+          }))
           : [],
         cacheHit: false,
         cacheSimilarity,
@@ -246,7 +283,10 @@ export class QueryService {
         includeSources,
       );
     } catch (error) {
-      logger.error("LLM call failed", { error: (error as Error).message, queryId });
+      logger.error("LLM call failed", {
+        error: (error as Error).message,
+        queryId,
+      });
       throw new AppError("Failed to generate answer. Please try again.", 500);
     }
 
@@ -275,6 +315,7 @@ export class QueryService {
      * cache write fails, the response is still returned successfully. */
     try {
       await this.writeCache({
+        queryId,
         companyId,
         documentId: documentId || null,
         question: originalQuery,
@@ -283,7 +324,10 @@ export class QueryService {
         sources,
       });
     } catch (error) {
-      logger.error("Cache write failed (non-fatal)", { error: (error as Error).message, queryId });
+      logger.error("Cache write failed (non-fatal)", {
+        error: (error as Error).message,
+        queryId,
+      });
     }
 
     const processingTime = Date.now() - startTime;
@@ -306,6 +350,113 @@ export class QueryService {
     return auditLogs;
   }
 
+  /**
+   * Get company query statistics with pagination.
+   * Returns questions from semantic_query_cache and token usage from query_token_usage.
+   */
+  async getCompanyQueryStats(
+    companyId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{
+    data: Array<{
+      queryId: string;
+      question: string;
+      answer: string;
+      documentId: string | null;
+      hitCount: number;
+      lastUsedAt: Date;
+      createdAt: Date;
+      tokenUsage: {
+        embeddingTokens: number;
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+        cacheHit: boolean;
+        model: string;
+        operationType: string;
+      } | null;
+    }>;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+
+    const offset = (page - 1) * limit;
+
+    // Get total count of queries for the company
+    const total = await SemanticQueryCache.count({
+      where: { company_id: companyId },
+    });
+
+    // Get paginated queries with their token usage
+    const queries = await SemanticQueryCache.findAll({
+      where: { company_id: companyId },
+      order: [["created_at", "DESC"]],
+      limit,
+      offset,
+    });
+
+    // Get token usage for all query IDs
+    const queryIds = queries.map((q) => q.id);
+    const tokenUsageMap = new Map<string, any>();
+
+    if (queryIds.length > 0) {
+      const tokenUsages = await QueryTokenUsage.findAll({
+        where: {
+          company_id: companyId,
+          query_id: queryIds,
+        },
+      });
+
+      // Group token usage by query_id (there could be multiple entries per query)
+      for (const usage of tokenUsages) {
+        const existing = tokenUsageMap.get(usage.query_id);
+        if (!existing) {
+          tokenUsageMap.set(usage.query_id, {
+            embeddingTokens: 0,
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0,
+            cacheHit: false,
+            model: "",
+            operationType: "",
+          });
+        }
+        const agg = tokenUsageMap.get(usage.query_id);
+        agg.embeddingTokens += usage.embedding_tokens || 0;
+        agg.promptTokens += usage.prompt_tokens || 0;
+        agg.completionTokens += usage.completion_tokens || 0;
+        agg.totalTokens += usage.total_tokens || 0;
+        agg.cacheHit = agg.cacheHit || usage.cache_hit;
+        agg.model = usage.model || agg.model;
+        agg.operationType = usage.operation_type || agg.operationType;
+      }
+    }
+
+    const data = queries.map((q) => {
+      const tokens = tokenUsageMap.get(q.id);
+      return {
+        queryId: q.id,
+        question: q.question,
+        answer: q.answer,
+        documentId: q.document_id,
+        hitCount: q.hit_count,
+        lastUsedAt: q.last_used_at,
+        createdAt: q.created_at,
+        referenceSemanticId: q.reference_semantic_id,
+        tokenUsage: tokens || null,
+      };
+    });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
+  }
+
   /* ── Semantic Cache Helpers ──────────────────────────────────────────── */
 
   /**
@@ -316,14 +467,20 @@ export class QueryService {
     companyId: string,
     embedding: number[],
     documentId?: string,
-  ): Promise<{ id: string; answer: string; sources: object; similarity: number } | null> {
+  ): Promise<{
+    id: string;
+    answer: string;
+    sources: object;
+    similarity: number;
+  } | null> {
     const embeddingStr = `[${embedding.join(",")}]`;
 
     const result = await sequelize.query(
       `SELECT id, answer, sources,
               1 - (question_embedding <=> :embedding::vector) AS similarity
        FROM semantic_query_cache
-       WHERE company_id = :companyId
+       WHERE company_id = :companyId 
+         AND reference_semantic_id IS NULL
          AND (:documentId IS NULL AND document_id IS NULL
               OR :documentId IS NOT NULL AND document_id = :documentId::UUID)
        ORDER BY question_embedding <=> :embedding::vector
@@ -346,7 +503,8 @@ export class QueryService {
     return {
       id: row.id,
       answer: row.answer,
-      sources: typeof row.sources === "string" ? JSON.parse(row.sources) : row.sources,
+      sources:
+        typeof row.sources === "string" ? JSON.parse(row.sources) : row.sources,
       similarity: parseFloat(row.similarity),
     };
   }
@@ -366,28 +524,31 @@ export class QueryService {
    * pgvector VECTOR(1536) for efficient HNSW-indexed similarity lookups.
    */
   private async writeCache(params: {
+    queryId: string;
     companyId: string;
     documentId: string | null;
     question: string;
     embedding: number[];
     answer: string;
     sources: SourceResult[];
+    referenceId?: string;
   }): Promise<void> {
     const embeddingStr = `[${params.embedding.join(",")}]`;
     const sourcesJson = JSON.stringify(params.sources);
-    const id = uuidv4();
+    const referenceId = params.referenceId || null;
     await sequelize.query(
-      `INSERT INTO semantic_query_cache (id, company_id, document_id, question, question_embedding, answer, sources, hit_count, last_used_at, created_at)
-       VALUES (:id, :companyId, :documentId, :question, :embedding::vector, :answer, :sources::jsonb, 0, NOW(), NOW())`,
+      `INSERT INTO semantic_query_cache (id, company_id, document_id, question, question_embedding, answer, sources, hit_count, last_used_at, created_at, reference_semantic_id)
+       VALUES (:id, :companyId, :documentId, :question, :embedding::vector, :answer, :sources::jsonb, 0, NOW(), NOW(), :referenceId)`,
       {
         replacements: {
-          id,
+          id: params.queryId,
           companyId: params.companyId,
           documentId: params.documentId,
           question: params.question,
           embedding: embeddingStr,
           answer: params.answer,
           sources: sourcesJson,
+          referenceId,
         },
         type: "INSERT",
       },
@@ -427,7 +588,12 @@ export class QueryService {
     /* Step 2: Sparse keyword retrieval — PostgreSQL full-text search (BM25-like). */
     let bm25Results: Bm25Result[] = [];
     try {
-      bm25Results = await this.bm25Service.search(query, companyId, documentId, queryConfig.bm25TopK);
+      bm25Results = await this.bm25Service.search(
+        query,
+        companyId,
+        documentId,
+        queryConfig.bm25TopK,
+      );
     } catch (error) {
       logger.warn("BM25 search failed, using vector-only results", {
         error: (error as Error).message,
@@ -473,7 +639,11 @@ export class QueryService {
      * the reranker itself fails. */
     let reranked: RerankerResult[];
     try {
-      reranked = await this.rerankerService.rerank(query, merged, queryConfig.rerankTopK);
+      reranked = await this.rerankerService.rerank(
+        query,
+        merged,
+        queryConfig.rerankTopK,
+      );
     } catch (error) {
       logger.warn("Reranking failed, using score fusion directly", {
         error: (error as Error).message,
@@ -549,7 +719,8 @@ export class QueryService {
         document_id: chunk.document_id,
         content: chunk.content,
         similarity,
-        document_filename: (chunk as any).document?.original_filename || "unknown",
+        document_filename:
+          (chunk as any).document?.original_filename || "unknown",
         chunkId: chunk.id,
       });
     }

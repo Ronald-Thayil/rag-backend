@@ -137,8 +137,45 @@
             "description": "List token usage audit logs for the current company.\n\n**Ordered by:** `created_at` DESC\n**Response:** Array of `QueryTokenUsage` records with token counts per query."
           },
           "response": []
+        },
+        {
+          "name": "Get Company Query Stats",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "x-company-id",
+                "value": "{{companyId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/query/stats?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["query", "stats"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page (default: 20, max: 100)"
+                }
+              ]
+            },
+            "description": "Get company query statistics with pagination (company_admin only).\n\n**Query params:**\n- `page` (optional, default: 1) - page number\n- `limit` (optional, default: 20) - items per page\n\n**Requires:** `company_admin` role\n\n**Response includes:**\n- `data`: array of query stats with question, documentId, hitCount, createdAt, tokenUsage array, totalTokens\n- `total`: total number of queries\n- `page`: current page\n- `limit`: items per page\n- `totalPages`: total pages"
+          },
+          "response": []
         }
-      ]
+      ],
+      "description": "RAG query endpoints"
     },
     {
       "name": "Auth",

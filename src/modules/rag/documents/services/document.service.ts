@@ -7,6 +7,7 @@ import { PaginationOptions } from "@/shared/interfaces";
 import { logger } from "@/config/logger";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import Chunk from "../../chunks/chunk.model";
 
 const ALLOWED_EXTENSIONS = new Set(uploadConfig.allowedTypes);
 
@@ -24,7 +25,7 @@ export class DocumentService {
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly storageService: StorageService
-  ) {}
+  ) { }
 
   async uploadDocument(
     companyId: string,
@@ -93,7 +94,10 @@ export class DocumentService {
     if (!doc) {
       throw new BadRequestError("Document not found");
     }
-    return doc;
+
+    const tokenUsage = await Chunk.count({ where: { document_id: documentId } });
+    let result = doc.get({ plain: true }) as Document;
+    return { ...result, token_usage: tokenUsage };
   }
 
   async listDocuments(
