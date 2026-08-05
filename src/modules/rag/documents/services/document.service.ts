@@ -24,18 +24,21 @@ export interface UploadResult {
 export class DocumentService {
   constructor(
     private readonly documentRepository: DocumentRepository,
-    private readonly storageService: StorageService
+    private readonly storageService: StorageService,
   ) { }
 
   async uploadDocument(
     companyId: string,
     userId: string,
     file: Express.Multer.File,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): Promise<UploadResult> {
     this.validateFile(file);
 
-    const ext = path.extname(file.originalname).toLowerCase().replace(/^\./, "");
+    const ext = path
+      .extname(file.originalname)
+      .toLowerCase()
+      .replace(/^\./, "");
     const uniqueFilename = `${uuidv4()}.${ext}`;
     const storagePath = `company/${companyId}/${uniqueFilename}`;
 
@@ -94,16 +97,14 @@ export class DocumentService {
     if (!doc) {
       throw new BadRequestError("Document not found");
     }
-
-    const tokenUsage = await Chunk.count({ where: { document_id: documentId } });
+    const tokenUsage = await Chunk.sum("token_count", {
+      where: { document_id: documentId },
+    });
     let result = doc.get({ plain: true }) as Document;
     return { ...result, token_usage: tokenUsage };
   }
 
-  async listDocuments(
-    companyId: string,
-    options: PaginationOptions
-  ) {
+  async listDocuments(companyId: string, options: PaginationOptions) {
     return this.documentRepository.findByCompany(companyId, options);
   }
 
@@ -116,17 +117,20 @@ export class DocumentService {
   }
 
   private validateFile(file: Express.Multer.File): void {
-    const ext = path.extname(file.originalname).toLowerCase().replace(/^\./, "");
+    const ext = path
+      .extname(file.originalname)
+      .toLowerCase()
+      .replace(/^\./, "");
     if (!ALLOWED_EXTENSIONS.has(ext)) {
       throw new BadRequestError(
-        `File type ".${ext}" is not allowed. Allowed types: ${uploadConfig.allowedTypes.join(", ")}`
+        `File type ".${ext}" is not allowed. Allowed types: ${uploadConfig.allowedTypes.join(", ")}`,
       );
     }
 
     const maxBytes = uploadConfig.maxFileSizeMb * 1024 * 1024;
     if (file.buffer.length > maxBytes) {
       throw new BadRequestError(
-        `File exceeds maximum size of ${uploadConfig.maxFileSizeMb} MB`
+        `File exceeds maximum size of ${uploadConfig.maxFileSizeMb} MB`,
       );
     }
   }
